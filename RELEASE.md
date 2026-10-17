@@ -1,5 +1,6 @@
-## 0.2.4
+## 0.2.5
 
+- Follow the Invidious channel uploads endpoint and its continuation, rather than treating the 30-video channel preview as the complete collection.
 - Add headless youtube.browse for channel cards, upload collections and playlist pagination.
 - Use the configured official YouTube key, or validated Piped/Invidious instances.
 - Attach channel links to search results and expose bounded continuation tokens.

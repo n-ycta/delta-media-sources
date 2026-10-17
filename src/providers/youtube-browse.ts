@@ -42,7 +42,9 @@ export async function browseYoutube(url:string,cursor:string|undefined,settings:
  for(const raw of invBases){const base=raw.replace(/\/$/,'');if(previous&&(previous.engine!=='invidious'||previous.base!==base))continue;try{
   const route=target.kind==='channel'?'channels/':'playlists/';
   const token=previous?.token;const suffix=target.kind==='channel'?(token?'?continuation='+encodeURIComponent(String(token)):''):'?page='+String(token||1);
-  const response=await getJson(base+'/api/v1/'+route+encodeURIComponent(target.id)+suffix,fetcher,3000);
+  const metadata=target.kind==='channel'&&!previous?await getJson(base+'/api/v1/channels/'+encodeURIComponent(target.id),fetcher,3000):{};
+  const page=await getJson(base+'/api/v1/'+route+encodeURIComponent(target.id)+(target.kind==='channel'?'/videos':'')+suffix,fetcher,3000);
+  const response={...metadata,...page};
   const videos=response.latestVideos||response.videos;if(!Array.isArray(videos))throw Error('browse_unavailable');
   const next=target.kind==='channel'?response.continuation:(response.videoCount>Number(token||1)*100?Number(token||1)+1:undefined);
   const result={kind:target.kind,title:clean(response.author||response.title)||'YouTube',description:clean(response.description,3000),artwork:httpsUrl(response.authorThumbnails?.at(-1)?.url||response.playlistThumbnail),url,items:videos.flatMap(track),next:pack('invidious',base,next)};

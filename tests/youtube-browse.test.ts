@@ -25,3 +25,7 @@ test('public error payloads are not a misleading empty playlist; Invidious fallb
  const page=await browseYoutube('https://www.youtube.com/playlist?list=PLabcdefghijk',undefined,s,fetcher);assert.equal(page.items.length,1);assert(page.next);assert.equal(JSON.parse(page.next!).engine,'invidious');
  await assert.rejects(()=>browseYoutube(page.url,undefined,s,async()=>new Response(JSON.stringify({error:'unavailable'}))));
 });
+
+test('Invidious channel uses uploads endpoint and follows continuation, not latestVideos preview',async()=>{
+ const requests:string[]=[];const s={youtubeKey:'',pipedInstances:[],invidiousInstances:['https://inv.example']};const fetcher=async(input:any)=>{const url=String(input);requests.push(url);return new Response(JSON.stringify(url.includes('/videos')?{videos:[{videoId:'abcdefghijk',title:url.includes('continuation=')?'Second':'First'}],...(!url.includes('continuation=')?{continuation:'page-two'}:{})}:{author:'Artist',latestVideos:[]}));};const first=await browseYoutube('https://youtube.com/channel/UCabcdefghijklmnopqrstuv',undefined,s,fetcher);assert.equal(first.title,'Artist');assert(first.next);const next=await browseYoutube(first.url,first.next,s,fetcher);assert.equal(next.items[0].title,'Second');assert(requests.some(u=>u.endsWith('/videos?continuation=page-two')));
+});
