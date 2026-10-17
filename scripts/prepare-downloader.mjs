@@ -1,0 +1,3 @@
+import{readFile,writeFile,mkdir}from'node:fs/promises';import{createHash}from'node:crypto';
+const pin=JSON.parse(await readFile('engine/pin.json','utf8'));const sum=b=>createHash('sha256').update(b).digest('hex');let data;try{data=await readFile('engine/yt-dlp')}catch{}
+if(!data||sum(data)!==pin.sha256){const r=await fetch(pin.url,{signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error('Official yt-dlp download failed: '+r.status);data=Buffer.from(await r.arrayBuffer());if(sum(data)!==pin.sha256)throw Error('yt-dlp checksum mismatch');await mkdir('engine',{recursive:true});await writeFile('engine/yt-dlp',data,{mode:0o755});}console.log('Verified yt-dlp '+pin.version);

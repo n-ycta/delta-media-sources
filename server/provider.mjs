@@ -7,6 +7,7 @@ export async function createProvider(id, providers, options={}) {
  let settings={...providers.defaultSettings,clientId:'',clientSecret:'',accessToken:''};
  try{Object.assign(settings,JSON.parse(await readFile(path,'utf8')))}catch(e){if(e.code!=='ENOENT')throw e}
  let token='',expires=0;
+ const searchCache=new Map(),inflight=new Map();
  const safe=()=>({...Object.fromEntries(Object.entries(settings).filter(([k])=>!['youtubeKey','clientSecret','accessToken'].includes(k))),_configuredSecrets:['youtubeKey','clientSecret','accessToken'].filter(k=>!!settings[k])});
  const json=async(url,init={})=>{const r=await (options.fetch||fetch)(url,{...init,signal:AbortSignal.timeout(12000)});if(!r.ok)throw new DeltaError('unavailable',r.status===401?'Provider authorization required':'Provider temporarily unavailable');return r.json()};
  const canSearch=()=>id==='youtube'||(id==='spotify'?!!(settings.clientId&&settings.clientSecret):!!settings.accessToken);
@@ -15,7 +16,7 @@ export async function createProvider(id, providers, options={}) {
   [`${id}.settings`]:async({values},caller)=>{
    if(values){if(!allowed(caller,id+'.settings',true))throw new DeltaError('forbidden','Owner required');
     for(const [key,val] of Object.entries(values)){if(!Object.hasOwn(settings,key))throw new DeltaError('bad_request','Unknown setting');if(Array.isArray(settings[key])){if(!Array.isArray(val)||val.length>5||val.some(v=>typeof v!=='string'||!/^https:\/\/[a-z0-9.-]+\/?$/i.test(v)))throw new DeltaError('bad_request','Invalid API instances');}else if(typeof val!=='string'||val.length>4096)throw new DeltaError('bad_request','Invalid setting');settings[key]=val;}
-    await mkdir(resolve(path,'..'),{recursive:true,mode:0o700});await writeFile(path+'.tmp',JSON.stringify(settings),{mode:0o600});await rename(path+'.tmp',path);token='';expires=0;
+    await mkdir(resolve(path,'..'),{recursive:true,mode:0o700});await writeFile(path+'.tmp',JSON.stringify(settings),{mode:0o600});await rename(path+'.tmp',path);token='';expires=0;searchCache.clear();
    }return safe();
   },
   [`${id}.resolve`]:async({url})=>{if(typeof url!=='string'||url.length>2048)throw new DeltaError('bad_request','Invalid link');const item=provider.parse(url);if(!item)throw new DeltaError('bad_request','Unsupported provider link');return provider.enrich?provider.enrich(item,options.fetch||fetch):item;},
@@ -23,7 +24,13 @@ export async function createProvider(id, providers, options={}) {
    if(typeof query!=='string'||!query.trim()||query.length>200)throw new DeltaError('bad_request','Query required');
    const link=provider.parse(query);if(link)return [provider.enrich?await provider.enrich(link,options.fetch||fetch):link];
    if(!canSearch())throw new DeltaError('authorization_required','Connect this provider in plugin settings to search');
-   if(id==='youtube')return provider.search(query,settings,options.fetch||fetch);
+   if(id==='youtube'){
+    const key=query.trim().toLocaleLowerCase(),cached=searchCache.get(key);if(cached&&Date.now()-cached.at<120000)return cached.items;
+    if(inflight.has(key))return inflight.get(key);
+    if(inflight.size>=2)throw new DeltaError('busy','Search in progress; retry shortly');
+    const request=provider.search(query,settings,options.fetch||fetch).then(items=>{if(searchCache.size>=50)searchCache.delete(searchCache.keys().next().value);searchCache.set(key,{at:Date.now(),items});return items;}).catch(()=>{throw new DeltaError('unavailable','YouTube search is temporarily unavailable. Try again shortly.');}).finally(()=>inflight.delete(key));
+    inflight.set(key,request);return request;
+   }
    if(id==='spotify'){
     if(Date.now()>=expires){const r=await json('https://accounts.spotify.com/api/token',{method:'POST',headers:{authorization:'Basic '+Buffer.from(settings.clientId+':'+settings.clientSecret).toString('base64'),'content-type':'application/x-www-form-urlencoded'},body:'grant_type=client_credentials'});token=r.access_token;expires=Date.now()+Math.max(0,(r.expires_in-60))*1000;}
     const r=await json('https://api.spotify.com/v1/search?type=track&limit=25&q='+encodeURIComponent(query),{headers:{authorization:'Bearer '+token}});

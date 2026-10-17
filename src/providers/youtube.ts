@@ -65,36 +65,26 @@ export const youtube: Provider = {
   },
   async search(query, settings: Settings, fetcher) {
     const q = encodeURIComponent(query.trim().slice(0, 200));
-    const errors: string[] = [];
     if (settings.youtubeKey.trim()) {
       try {
-        return fromDataApi(
-          await getJson(
-            `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=25&q=${q}&key=${encodeURIComponent(settings.youtubeKey.trim())}`,
-            fetcher,
-          ),
-        );
-      } catch (e) {
-        errors.push("YouTube Data API: " + (e as Error).message);
-      }
+        return fromDataApi(await getJson(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=25&q=${q}&key=${encodeURIComponent(settings.youtubeKey.trim())}`, fetcher, 1500));
+      } catch { /* The configured API failed; public services may still work. */ }
     }
-    for (const base of settings.pipedInstances.map(httpsUrl).filter(Boolean) as string[]) {
-      try {
-        const r = fromPiped(await getJson(base.replace(/\/$/, "") + `/search?filter=videos&q=${q}`, fetcher));
-        if (r.length) return r;
-      } catch (e) {
-        errors.push(new URL(base).host + ": " + (e as Error).message);
-      }
+    const candidates = [
+      ...settings.pipedInstances.map(httpsUrl).filter(Boolean).map(base=>({url:base!.replace(/\/$/, "")+`/search?filter=videos&q=${q}`,parse:fromPiped})),
+      ...settings.invidiousInstances.map(httpsUrl).filter(Boolean).map(base=>({url:base!.replace(/\/$/, "")+`/api/v1/search?type=video&q=${q}`,parse:fromInvidious})),
+    ];
+    let empty = false;
+    try {
+      return await Promise.any(candidates.map(async c => {
+        const rows = c.parse(await getJson(c.url,fetcher,2200));
+        if (!rows.length) { empty = true; throw Error('no_results'); }
+        return rows;
+      }));
+    } catch {
+      if (empty) return [];
+      throw Error('search_unavailable');
     }
-    for (const base of settings.invidiousInstances.map(httpsUrl).filter(Boolean) as string[]) {
-      try {
-        const r = fromInvidious(await getJson(base.replace(/\/$/, "") + `/api/v1/search?type=video&q=${q}`, fetcher));
-        if (r.length) return r;
-      } catch (e) {
-        errors.push(new URL(base).host + ": " + (e as Error).message);
-      }
-    }
-    throw Error(errors.join("; ") || "no_results");
   },
   externalSearch: (q) => "https://www.youtube.com/results?search_query=" + encodeURIComponent(q),
   notes: {

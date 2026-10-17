@@ -23,3 +23,9 @@ test('unconfigured OAuth search does not pretend to work',async()=>{
 });
 
 test('explicit MCP administrator scope can configure only this provider',async()=>{const dir=await mkdtemp(join(tmpdir(),'provider-scoped-'));try{const h=await createProvider('youtube',providers,{dataDir:dir});await h['youtube.settings']({values:{youtubeKey:'test-key'}},{scopes:['admin:youtube.settings']});assert.deepEqual((await h['youtube.settings']({}))._configuredSecrets,['youtubeKey']);await assert.rejects(()=>h['youtube.settings']({values:{youtubeKey:'bad'}},{scopes:['admin:spotify.settings']}),e=>e.code==='forbidden');}finally{await rm(dir,{recursive:true,force:true})}});
+
+test('repeated searches cache and coalesce without poisoning future requests',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'provider-cache-'));let calls=0;
+ const fixture={...providers,youtube:{...providers.youtube,search:async q=>{calls++;await new Promise(r=>setTimeout(r,10));if(q==='fail')throw Error('down');return [{title:q}];}}};
+ try{const h=await createProvider('youtube',fixture,{dataDir:dir});await Promise.all(Array.from({length:8},()=>h['youtube.search']({query:'Music'})));assert.equal(calls,1);await h['youtube.search']({query:'Music'});assert.equal(calls,1);await assert.rejects(()=>h['youtube.search']({query:'fail'}),e=>e.code==='unavailable');assert.equal((await h['youtube.search']({query:'Other'}))[0].title,'Other');}finally{await rm(dir,{recursive:true,force:true});}
+});

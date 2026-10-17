@@ -33,9 +33,9 @@ test("YouTube search falls back across instances and reports errors", async () =
   }) as unknown as typeof fetch;
   const r = await youtube.search!("never gonna", defaultSettings, fake);
   assert.equal(r[0].title, "Hit");
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 4);
   const down = (async () => new Response("x", { status: 500 })) as unknown as typeof fetch;
-  await assert.rejects(youtube.search!("q", defaultSettings, down), /http_500/);
+  await assert.rejects(youtube.search!("q", defaultSettings, down), /search_unavailable/);
 });
 test("SoundCloud links", () => {
   assert.equal(soundcloudUrl("https://soundcloud.com/artist/track-name?si=1"), "https://soundcloud.com/artist/track-name");
@@ -59,4 +59,12 @@ test("oEmbed enrichment is optional", async () => {
   assert.deepEqual(await spotify.enrich!(it, fail), it);
   const ok = (async () => new Response(JSON.stringify({ title: "Song", thumbnail_url: "https://i.scdn.co/x.jpg" }))) as unknown as typeof fetch;
   assert.equal((await spotify.enrich!(it, ok)).artwork, "https://i.scdn.co/x.jpg");
+});
+
+test("slow public endpoint does not block another healthy search instance", async () => {
+ const fake=(async(url:string,init:RequestInit)=>{
+  if(url.includes('private.coffee'))return new Promise((_,reject)=>init.signal?.addEventListener('abort',()=>reject(Error('timeout'))));
+  return new Response(JSON.stringify({items:[{type:'stream',url:'/watch?v=dQw4w9WgXcQ',title:'Available'}]}));
+ }) as typeof fetch;
+ const before=Date.now();const rows=await youtube.search!('test',defaultSettings,fake);assert.equal(rows[0].title,'Available');assert.ok(Date.now()-before<1000);
 });
