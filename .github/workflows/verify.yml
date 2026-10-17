@@ -1,4 +1,4 @@
-name: Verify source apps
+name: Verify provider plugins
 on: [push, workflow_dispatch]
 permissions: {contents: read}
 jobs:
@@ -9,6 +9,6 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: '24', cache: npm}
       - run: npm ci --ignore-scripts
-      - run: npm test && npm run package:app
+      - run: npm test && npm run package:plugins
       - uses: actions/upload-artifact@v4
         with: {name: delta-media-sources, path: release}

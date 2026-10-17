@@ -1,19 +1,9 @@
-# Delta Media Sources
+# Delta Media providers
 
-Three small portable Delta apps that **find** media and hand it to **any player** through host-mediated intents:
+YouTube, SoundCloud and Spotify are headless process plugins, not standalone applications. Install them from the common Plugins list and connect them in Media → Sources. They have no dock entries or independent screens.
 
-| App | ID | Find | Play (in Delta Media) |
-| --- | --- | --- | --- |
-| Delta YouTube | `dev.delta.youtube` | In-app search: your own YouTube Data API key, otherwise public Piped / Invidious instances (editable list); or paste a link | Official `youtube-nocookie.com` embed |
-| Delta SoundCloud | `dev.delta.soundcloud` | Paste a track / playlist link (oEmbed metadata); "On site" opens soundcloud.com search | Official SoundCloud widget |
-| Delta Spotify | `dev.delta.spotify` | Paste a link or `spotify:` URI (oEmbed metadata); "On site" opens open.spotify.com search | Official Spotify embed (30 s previews unless signed in to Spotify) |
+Each exposes `<provider>.status`, `.settings`, `.search({query})` and `.resolve({url})` through Delta and the MCP capability catalog. Settings changes require administrator access; secrets are persisted privately and never returned.
 
-Each item is sent with `host.sendIntent("media.play" | "media.enqueue", { provider, url, title, artist, artwork, duration, kind })`.
-The host only routes it when the reviewed catalog lets the sender `send` and a receiver (Delta Media ≥ 0.2.0) `receive` that intent; payloads are plain JSON ≤ 64 KB. Any other app may declare `receive: ["media.play"]` and reuse these sources.
+YouTube supports a configured Data API key and public search services. SoundCloud search requires an OAuth access token. Spotify search requires a client ID and secret. Resolving a supported public link does not require search credentials. Playback access remains subject to each platform’s account and embedding restrictions.
 
-Honest limits: SoundCloud no longer issues public API keys and Spotify search requires OAuth, so neither has in-app search. Public Piped/Invidious instances come and go. No scraping, DRM or account bypass.
-
-```
-npm ci && npm test && npm run package:app   # release/delta-{youtube,soundcloud,spotify}.delta-app + SHA256SUMS
-PROVIDER=spotify npm run dev                 # standalone preview of one app
-```
+Build: `npm ci --ignore-scripts && npm test && npm run package:plugins`. Release assets are three `.tar.gz` process plugin packages plus SHA256SUMS.
