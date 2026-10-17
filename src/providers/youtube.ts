@@ -30,20 +30,20 @@ const item = (id: string, title: string, artist?: string, duration?: number): So
 export function fromDataApi(json: any): SourceItem[] {
   return (Array.isArray(json?.items) ? json.items : []).flatMap((v: any) => {
     const id = v?.id?.videoId;
-    return ID.test(id || "") ? [item(id, v.snippet?.title, v.snippet?.channelTitle)] : [];
+    return ID.test(id || "") ? [{...item(id, v.snippet?.title, v.snippet?.channelTitle),channelUrl:v.snippet?.channelId?'https://www.youtube.com/channel/'+v.snippet.channelId:undefined}] : [];
   });
 }
 /** Piped API `/search?filter=videos`. */
 export function fromPiped(json: any): SourceItem[] {
   return (Array.isArray(json?.items) ? json.items : []).flatMap((v: any) => {
     const id = typeof v?.url === "string" ? new URLSearchParams(v.url.split("?")[1] || "").get("v") || "" : "";
-    return v?.type === "stream" && ID.test(id) ? [item(id, v.title, v.uploaderName, v.duration)] : [];
+    return v?.type === "stream" && ID.test(id) ? [{...item(id, v.title, v.uploaderName, v.duration),channelUrl:v.uploaderUrl?'https://www.youtube.com'+v.uploaderUrl:undefined}] : [];
   });
 }
 /** Invidious API `/api/v1/search?type=video`. */
 export function fromInvidious(json: any): SourceItem[] {
   return (Array.isArray(json) ? json : []).flatMap((v: any) =>
-    v?.type === "video" && ID.test(v.videoId || "") ? [item(v.videoId, v.title, v.author, v.lengthSeconds)] : [],
+    v?.type === "video" && ID.test(v.videoId || "") ? [{...item(v.videoId, v.title, v.author, v.lengthSeconds),channelUrl:v.authorId?'https://www.youtube.com/channel/'+v.authorId:undefined}] : [],
   );
 }
 const decodeHtml = (s: string) =>

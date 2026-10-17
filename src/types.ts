@@ -4,6 +4,7 @@ export interface SourceItem {
   url: string;
   title: string;
   artist?: string;
+  channelUrl?: string;
   artwork?: string;
   duration?: number;
   kind: "audio" | "video";

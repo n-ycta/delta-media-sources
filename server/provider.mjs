@@ -12,6 +12,10 @@ export async function createProvider(id, providers, options={}) {
  const json=async(url,init={})=>{const r=await (options.fetch||fetch)(url,{...init,signal:AbortSignal.timeout(12000)});if(!r.ok)throw new DeltaError('unavailable',r.status===401?'Provider authorization required':'Provider temporarily unavailable');return r.json()};
  const canSearch=()=>id==='youtube'||(id==='spotify'?!!(settings.clientId&&settings.clientSecret):!!settings.accessToken);
  return {
+  ...(id==='youtube'?{'youtube.browse':async({url,cursor})=>{
+   if(typeof url!=='string'||url.length>2048||(cursor!==undefined&&typeof cursor!=='string'))throw new DeltaError('bad_request','Invalid collection');
+   try{return await providers.browseYoutube(url,cursor,settings,options.fetch||fetch)}catch{throw new DeltaError('unavailable','Channel or playlist unavailable. Configure a YouTube API key or try again later.');}
+  }}:{}),
   [`${id}.status`]:async()=>({settings:safe(),provider:{id,name:provider.name,search:canSearch(),resolve:true,connected:true},notices:[]}),
   [`${id}.settings`]:async({values},caller)=>{
    if(values){if(!allowed(caller,id+'.settings',true))throw new DeltaError('forbidden','Owner required');

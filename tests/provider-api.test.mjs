@@ -10,7 +10,7 @@ test('headless capabilities, secret redaction, safe settings, link resolving',as
  const dir=await mkdtemp(join(tmpdir(),'provider-'));
  try{const h=await createProvider('youtube',providers,{dataDir:dir});
  assert(!makeManifest('youtube','0.2.0').ui,'No UI entry for provider');
- assert.deepEqual(makeManifest('youtube','0.2.0').capabilities.map(c=>c.name),['status','settings','search','resolve']);
+ assert.deepEqual(makeManifest('youtube','0.2.0').capabilities.map(c=>c.name),['status','settings','search','resolve','browse']);
  await assert.rejects(()=>h['youtube.settings']({values:{youtubeKey:'secret'}},{scopes:[]}),/Owner/);
  const s=await h['youtube.settings']({values:{youtubeKey:'secret'}},{scopes:['admin']});assert(!JSON.stringify(s).includes('secret"'));assert.deepEqual(s._configuredSecrets,['youtubeKey']);
  assert.equal((await h['youtube.resolve']({url:'https://youtu.be/abcdefghijk'})).provider,'youtube');
