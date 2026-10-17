@@ -21,3 +21,5 @@ test('headless capabilities, secret redaction, safe settings, link resolving',as
 test('unconfigured OAuth search does not pretend to work',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'provider-'));try{const h=await createProvider('spotify',providers,{dataDir:dir});assert.equal((await h['spotify.status']()).provider.search,false);await assert.rejects(()=>h['spotify.search']({query:'Music'}),e=>e.code==='authorization_required')}finally{await rm(dir,{recursive:true,force:true})}
 });
+
+test('explicit MCP administrator scope can configure only this provider',async()=>{const dir=await mkdtemp(join(tmpdir(),'provider-scoped-'));try{const h=await createProvider('youtube',providers,{dataDir:dir});await h['youtube.settings']({values:{youtubeKey:'test-key'}},{scopes:['admin:youtube.settings']});assert.deepEqual((await h['youtube.settings']({}))._configuredSecrets,['youtubeKey']);await assert.rejects(()=>h['youtube.settings']({values:{youtubeKey:'bad'}},{scopes:['admin:spotify.settings']}),e=>e.code==='forbidden');}finally{await rm(dir,{recursive:true,force:true})}});

@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { DeltaError } from './delta-sdk.mjs';
+import { DeltaError, allowed } from './delta-sdk.mjs';
 export async function createProvider(id, providers, options={}) {
  const provider=providers[id]; if(!provider) throw Error('Unknown provider');
  const path=resolve(options.dataDir||process.env.DATA_DIR||process.env.DELTA_DATA||'data',id+'-settings.json');
@@ -13,7 +13,7 @@ export async function createProvider(id, providers, options={}) {
  return {
   [`${id}.status`]:async()=>({settings:safe(),provider:{id,name:provider.name,search:canSearch(),resolve:true,connected:true},notices:[]}),
   [`${id}.settings`]:async({values},caller)=>{
-   if(values){if(!caller?.scopes?.includes('admin'))throw new DeltaError('forbidden','Owner required');
+   if(values){if(!allowed(caller,id+'.settings',true))throw new DeltaError('forbidden','Owner required');
     for(const [key,val] of Object.entries(values)){if(!Object.hasOwn(settings,key))throw new DeltaError('bad_request','Unknown setting');if(Array.isArray(settings[key])){if(!Array.isArray(val)||val.length>5||val.some(v=>typeof v!=='string'||!/^https:\/\/[a-z0-9.-]+\/?$/i.test(v)))throw new DeltaError('bad_request','Invalid API instances');}else if(typeof val!=='string'||val.length>4096)throw new DeltaError('bad_request','Invalid setting');settings[key]=val;}
     await mkdir(resolve(path,'..'),{recursive:true,mode:0o700});await writeFile(path+'.tmp',JSON.stringify(settings),{mode:0o600});await rename(path+'.tmp',path);token='';expires=0;
    }return safe();
