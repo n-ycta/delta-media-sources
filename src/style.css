@@ -1,0 +1,49 @@
+:root {
+  --bg: var(--delta-bg, #f6f5f2); --surface: var(--delta-surface, #fff); --surface2: var(--delta-surface2, #f1efea);
+  --ink: var(--delta-ink, #1a1a18); --muted: var(--delta-muted, #77736a); --rule: var(--delta-rule, #e1ddd3);
+  --accent: var(--delta-accent, #7155da); --accent-ink: var(--delta-accent-ink, #fff); --accent-weak: var(--delta-accent-weak, #ece7fb);
+  --warn: var(--delta-warn, #a86f12); --r: var(--delta-r-md, 10px); --r-lg: var(--delta-r-lg, 14px);
+  --font: var(--delta-font-sans, "Manrope", system-ui, sans-serif); --font-h: var(--delta-font-heading, var(--font));
+  color-scheme: light;
+}
+:root[data-theme="dark"]:not([data-delta-skin]) { --bg: #141413; --surface: #1c1c1a; --surface2: #232321; --ink: #ecebe5; --muted: #98948a; --rule: #2e2d2a; --accent-weak: #2c2545; color-scheme: dark; }
+:root[data-delta-skin][data-theme="dark"] { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font); }
+#app { max-width: 880px; margin: 0 auto; padding: 18px 18px 32px; display: flex; flex-direction: column; gap: 12px; }
+header { display: flex; align-items: center; gap: 10px; }
+header h1 { margin: 0; font: 600 20px/1.2 var(--font-h); }
+.grow { flex: 1; }
+.logo { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
+.logo svg { width: 22px; height: 22px; }
+.logo.youtube { background: #e62117; } .logo.soundcloud { background: #ff5500; } .logo.spotify { background: #1db954; }
+button { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); min-height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+button:hover { background: var(--surface2); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+button[disabled] { opacity: .6; cursor: progress; }
+button[aria-pressed="true"] { background: var(--accent-weak); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+form { display: flex; gap: 8px; flex-wrap: wrap; }
+.field { flex: 1 1 260px; display: flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 40px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); color: var(--muted); }
+.field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; }
+form > button { min-height: 40px; }
+.settings { display: grid; gap: 10px; padding: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg); }
+.settings label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+.settings input, .settings textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: var(--r); padding: 8px 10px; }
+.settings button { justify-self: start; }
+h2 { margin: 8px 0 0; font: 600 13px/1.3 var(--font-h); color: var(--muted); display: flex; gap: 6px; align-items: center; text-transform: uppercase; letter-spacing: .04em; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.item { display: flex; align-items: center; gap: 12px; padding: 8px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-lg); }
+.art { width: 64px; height: 40px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--surface2); display: grid; place-items: center; color: var(--muted); }
+.art img { width: 100%; height: 100%; object-fit: cover; }
+.meta { flex: 1; min-width: 0; display: grid; }
+.meta strong, .meta small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta small { color: var(--muted); }
+.item button { min-width: 36px; padding: 0; justify-content: center; }
+.status { margin: 0; padding: 8px 12px; border-radius: var(--r); background: var(--accent-weak); }
+.note { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+.note.warn { color: var(--warn); }
+.empty { display: grid; justify-items: center; gap: 8px; padding: 40px 16px; text-align: center; color: var(--muted); }
+.empty svg { width: 40px; height: 40px; }
+.empty p { max-width: 54ch; margin: 0; }
+@media (max-width: 480px) { #app { padding: 12px; } form > button[data-act="external"] span { display: none; } .art { width: 48px; height: 36px; } }

@@ -1,0 +1,28 @@
+{
+  "id": "dev.delta.soundcloud",
+  "name": "Delta SoundCloud",
+  "version": "0.1.0",
+  "entry": "index.html",
+  "runtime": {
+    "execution": "web",
+    "platforms": ["android", "windows", "linux", "macos", "ios", "web"],
+    "architectures": ["any"]
+  },
+  "permissions": ["storage.local", "network.https"],
+  "grants": [],
+  "ui": {
+    "version": 1,
+    "surfaces": [
+      {
+        "id": "search",
+        "name": { "en": "SoundCloud", "ru": "SoundCloud" },
+        "icon": "soundcloud-logo",
+        "kind": "page",
+        "minWidth": 300,
+        "minHeight": 300,
+        "instance": "shared",
+        "requires": ["dev.delta.soundcloud>=0.1.0"]
+      }
+    ]
+  }
+}

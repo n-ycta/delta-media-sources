@@ -1,0 +1,29 @@
+{
+  "name": "delta-media-sources",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "description": "YouTube, SoundCloud and Spotify source apps for Delta: search or paste a link, hand it to any player through media intents.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "test": "tsx --test tests/*.test.ts",
+    "package:app": "npm run build && node scripts/package-app.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vite": "^8.3.4"
+  },
+  "dependencies": {
+    "@delta/ui": "https://github.com/n-ycta/delta-ui/archive/033f78d81058d99bd9e815a9ad2a11109889956e.tar.gz",
+    "@fontsource/golos-text": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/literata": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
+    "@fontsource/onest": "^5.3.1",
+    "@phosphor-icons/core": "^2.1.1"
+  }
+}
