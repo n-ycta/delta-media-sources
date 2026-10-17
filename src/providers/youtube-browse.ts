@@ -12,7 +12,7 @@ const track=(v:any):SourceItem[]=>{
  const s=v.snippet||v;return [{provider:'youtube',kind:'video',url:'https://www.youtube.com/watch?v='+id,title:clean(s.title)||'YouTube '+id,artist:clean(s.videoOwnerChannelTitle||s.author||s.uploaderName)||undefined,artwork:`https://i.ytimg.com/vi/${id}/hqdefault.jpg`,channelUrl:(s.videoOwnerChannelId||s.authorId)?'https://www.youtube.com/channel/'+(s.videoOwnerChannelId||s.authorId):undefined}];
 };
 export async function browseYoutube(url:string,cursor:string|undefined,settings:Settings,fetcher:typeof fetch=fetch){
- const target=youtubeCollection(url);
+ const target=youtubeCollection(url);let emptyResult:any;
  if(cursor&&cursor.length>8000)throw Error('invalid_cursor');
  const previous=cursor?JSON.parse(cursor):null;
  const pack=(engine:string,base:string,token:unknown,id=target.id)=>token?JSON.stringify({engine,base,token,id}):undefined;
@@ -35,7 +35,8 @@ export async function browseYoutube(url:string,cursor:string|undefined,settings:
   const route=target.kind==='channel'?'channel':'playlists';
   const response=await getJson(base+'/'+(previous?'nextpage/':'')+route+'/'+encodeURIComponent(target.id)+(previous?'?nextpage='+encodeURIComponent(String(previous.token)):''),fetcher,3000);
   if(!Array.isArray(response.relatedStreams))throw Error('browse_unavailable');
-  return {kind:target.kind,title:clean(response.name)||'YouTube',description:clean(response.description,3000),artwork:httpsUrl(response.avatarUrl||response.thumbnailUrl),url,items:(response.relatedStreams||[]).flatMap(track),next:pack('piped',base,response.nextpage)};
+  const result={kind:target.kind,title:clean(response.name)||'YouTube',description:clean(response.description,3000),artwork:httpsUrl(response.avatarUrl||response.thumbnailUrl),url,items:(response.relatedStreams||[]).flatMap(track),next:pack('piped',base,response.nextpage)};
+  if(result.items.length)return result;emptyResult=result;
  }catch{}}
  const invBases=settings.invidiousInstances.map(httpsUrl).filter(Boolean) as string[];
  for(const raw of invBases){const base=raw.replace(/\/$/,'');if(previous&&(previous.engine!=='invidious'||previous.base!==base))continue;try{
@@ -44,8 +45,10 @@ export async function browseYoutube(url:string,cursor:string|undefined,settings:
   const response=await getJson(base+'/api/v1/'+route+encodeURIComponent(target.id)+suffix,fetcher,3000);
   const videos=response.latestVideos||response.videos;if(!Array.isArray(videos))throw Error('browse_unavailable');
   const next=target.kind==='channel'?response.continuation:(response.videoCount>Number(token||1)*100?Number(token||1)+1:undefined);
-  return {kind:target.kind,title:clean(response.author||response.title)||'YouTube',description:clean(response.description,3000),artwork:httpsUrl(response.authorThumbnails?.at(-1)?.url||response.playlistThumbnail),url,items:videos.flatMap(track),next:pack('invidious',base,next)};
+  const result={kind:target.kind,title:clean(response.author||response.title)||'YouTube',description:clean(response.description,3000),artwork:httpsUrl(response.authorThumbnails?.at(-1)?.url||response.playlistThumbnail),url,items:videos.flatMap(track),next:pack('invidious',base,next)};
+  if(result.items.length)return result;emptyResult=result;
  }catch{}}
+ if(emptyResult)return emptyResult;
  throw Error('browse_unavailable');
 }
 
