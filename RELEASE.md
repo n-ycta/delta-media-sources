@@ -1,3 +1,8 @@
+## 0.2.6
+
+- Wait briefly for available YouTube search capacity instead of immediately failing concurrent requests.
+- Preserve supported Delta error codes for authorization and capacity failures.
+
 ## 0.2.5
 
 - Follow the Invidious channel uploads endpoint and its continuation, rather than treating the 30-video channel preview as the complete collection.

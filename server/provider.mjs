@@ -7,7 +7,7 @@ export async function createProvider(id, providers, options={}) {
  let settings={...providers.defaultSettings,clientId:'',clientSecret:'',accessToken:''};
  try{Object.assign(settings,JSON.parse(await readFile(path,'utf8')))}catch(e){if(e.code!=='ENOENT')throw e}
  let token='',expires=0;
- const searchCache=new Map(),inflight=new Map();
+ const searchCache=new Map(),inflight=new Map();let searchWaiters=0;
  const safe=()=>({...Object.fromEntries(Object.entries(settings).filter(([k])=>!['youtubeKey','clientSecret','accessToken'].includes(k))),_configuredSecrets:['youtubeKey','clientSecret','accessToken'].filter(k=>!!settings[k])});
  const json=async(url,init={})=>{const r=await (options.fetch||fetch)(url,{...init,signal:AbortSignal.timeout(12000)});if(!r.ok)throw new DeltaError('unavailable',r.status===401?'Provider authorization required':'Provider temporarily unavailable');return r.json()};
  const canSearch=()=>id==='youtube'||(id==='spotify'?!!(settings.clientId&&settings.clientSecret):!!settings.accessToken);
@@ -27,11 +27,17 @@ export async function createProvider(id, providers, options={}) {
   [`${id}.search`]:async({query})=>{
    if(typeof query!=='string'||!query.trim()||query.length>200)throw new DeltaError('bad_request','Query required');
    const link=provider.parse(query);if(link)return [provider.enrich?await provider.enrich(link,options.fetch||fetch):link];
-   if(!canSearch())throw new DeltaError('authorization_required','Connect this provider in plugin settings to search');
+   if(!canSearch())throw new DeltaError('forbidden','Connect this provider in plugin settings to search');
    if(id==='youtube'){
-    const key=query.trim().toLocaleLowerCase(),cached=searchCache.get(key);if(cached&&Date.now()-cached.at<120000)return cached.items;
-    if(inflight.has(key))return inflight.get(key);
-    if(inflight.size>=2)throw new DeltaError('busy','Search in progress; retry shortly');
+    const key=query.trim().toLocaleLowerCase();
+    while(true){
+     const cached=searchCache.get(key);if(cached&&Date.now()-cached.at<120000)return cached.items;
+     if(inflight.has(key))return inflight.get(key);
+     if(inflight.size<2)break;
+     if(searchWaiters>=4)throw new DeltaError('unavailable','Search is busy; retry shortly');
+     searchWaiters++;
+     try{await Promise.race([...inflight.values()].map(p=>p.catch(()=>{})));}finally{searchWaiters--;}
+    }
     const request=provider.search(query,settings,options.fetch||fetch).then(items=>{if(searchCache.size>=50)searchCache.delete(searchCache.keys().next().value);searchCache.set(key,{at:Date.now(),items});return items;}).catch(()=>{throw new DeltaError('unavailable','YouTube search is temporarily unavailable. Try again shortly.');}).finally(()=>inflight.delete(key));
     inflight.set(key,request);return request;
    }
